@@ -1,4 +1,4 @@
-from main import keys_to_pinyin, generate_candidates
+from main import keys_to_pinyin, beam_search_generate,commit
 from pypinyin import lazy_pinyin
 
 from typing import List
@@ -16,7 +16,7 @@ def test_text_offset(test_text: str):
     print(f"转换为拼音: {pinyin_input}")
 
     # 调用补全引擎生成候选词
-    candidates = generate_candidates(pinyin_input)
+    candidates = beam_search_generate(pinyin_input)
     print("生成的候选词:")
     for idx, candidate in enumerate(candidates):
         print(f"{idx}: {candidate}")
@@ -30,5 +30,6 @@ def test_text_offset(test_text: str):
 
 if __name__ == "__main__":
     # 示例测试
-    test_text = "小明"
+    commit('测试补全引擎')
+    test_text = "测试成功"
     test_text_offset(test_text)
