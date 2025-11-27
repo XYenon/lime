@@ -110,12 +110,17 @@ def beam_search_generate(
                 logits = outputs.logits[:, -1, :]
 
             probabilities = torch.softmax(logits, dim=-1)
-            tk = 1000
+            tk = logits.size(-1)  # 设置为可能的上限
             top_probs, top_indices = torch.topk(probabilities, tk)
 
             for i in range(tk):
+                if len(next_beam) >= 100:  # 如果 next_beam 的容量达到 100，终止遍历
+                    break
+
                 token_id = top_indices[0, i].item()
                 token = tokenizer.decode([token_id])
+                if len(token) < 1:
+                    continue
                 token_prob = top_probs[0, i].item()
                 new_prob = prob * token_prob  # 累乘概率
                 new_context = context + token[0]
@@ -125,7 +130,6 @@ def beam_search_generate(
                 # 检查拼音匹配
                 token_pinyin = lazy_pinyin(token[0])
                 if remaining_pinyin.startswith(token_pinyin[0]):
-                    print(token, token_prob)
                     new_remaining_pinyin = remaining_pinyin[len(token_pinyin[0]) :]
                     heappush(
                         next_beam,
