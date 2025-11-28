@@ -4,6 +4,15 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 from typing import List, Dict, Tuple, TypedDict
 
+
+class Candidate(TypedDict):
+    word: str
+    score: float
+    pinyin: List[str]
+
+
+BeamList = List[Tuple[float, str, str, List[Tuple[str, float]], List[str]]]
+
 # 初始化 Flask 应用
 print("初始化网络服务器")
 app = Flask(__name__)
@@ -26,10 +35,34 @@ def keys_to_pinyin(keys: str) -> str:
     return keys
 
 
-class Candidate(TypedDict):
-    word: str
-    score: float
-    pinyin: List[str]
+def match_pinyin(
+    token: str,
+    check_count: int,
+    remaining_pinyin: str,
+    add_count: int,
+    next_beam: BeamList,
+    new_prob: float,
+    new_context: str,
+    new_token_tail: str,
+    token_prob: float,
+    matched_pinyin: List[str],
+):
+    token_pinyin = lazy_pinyin(token)
+    check_count += 1
+    if remaining_pinyin.startswith(token_pinyin[0]):
+        if token != token_pinyin[0]:
+            new_remaining_pinyin = remaining_pinyin[len(token_pinyin[0]) :]
+            add_count += 1
+            add_to_beam(
+                next_beam,
+                new_prob,
+                new_context,
+                new_remaining_pinyin,
+                new_token_tail,
+                token_prob,
+                matched_pinyin + [token_pinyin[0]],
+            )
+    return (check_count,add_count)
 
 
 # 使用 Beam Search 生成候选词，拼音拆分基于候选词
@@ -48,7 +81,7 @@ def beam_search_generate(
     inputs = tokenizer(prompt, return_tensors="pt")
 
     # 初始化 Beam Search 队列
-    beam: List[Tuple[float, str, str, List[Tuple[str, float]], List[str]]] = [
+    beam: BeamList = [
         (1.0, "", pinyin_input, [], [])
     ]  # (prob, context, remaining_pinyin, token_tails, matched_pinyin)
 
@@ -62,7 +95,7 @@ def beam_search_generate(
     while beam:
         run_count += 1
         print(run_count)
-        next_beam = []
+        next_beam: BeamList = []
         for prob, context, remaining_pinyin, token_tails, matched_pinyin in beam:
             if not remaining_pinyin:  # 如果拼音已经全部匹配完
                 final_candidates.append((prob, context, matched_pinyin))
@@ -78,22 +111,18 @@ def beam_search_generate(
                     new_prob = token_tail_prob  # 使用 token_tail 的概率
                     new_context = context + token
 
-                    # 检查拼音匹配
-                    token_pinyin = lazy_pinyin(token)
-                    check_count += 1
-                    if remaining_pinyin.startswith(token_pinyin[0]):
-                        print(context, token, token_tail_prob)
-                        new_remaining_pinyin = remaining_pinyin[len(token_pinyin[0]) :]
-                        add_count += 1
-                        add_to_beam(
-                            next_beam,
-                            new_prob,
-                            new_context,
-                            new_remaining_pinyin,
-                            new_token_tail,
-                            token_tail_prob,
-                            matched_pinyin + [token_pinyin[0]],
-                        )
+                    check_count,add_count= match_pinyin(
+                        token,
+                        check_count,
+                        remaining_pinyin,
+                        add_count,
+                        next_beam,
+                        new_prob,
+                        new_context,
+                        new_token_tail,
+                        token_tail_prob,
+                        matched_pinyin,
+                    )
 
             model_count += 1
             inputs = tokenizer(prompt + context, return_tensors="pt")
@@ -120,22 +149,18 @@ def beam_search_generate(
                 new_context = context + token[0]
                 new_token_tail = token[1:]  # 提取 token 的剩余部分
 
-                # 检查拼音匹配
-                token_pinyin = lazy_pinyin(token)
-                check_count += 1
-                if remaining_pinyin.startswith(token_pinyin[0]):
-                    if token != token_pinyin[0]:
-                        new_remaining_pinyin = remaining_pinyin[len(token_pinyin[0]) :]
-                        add_count += 1
-                        add_to_beam(
-                            next_beam,
-                            new_prob,
-                            new_context,
-                            new_remaining_pinyin,
-                            new_token_tail,
-                            token_prob,
-                            matched_pinyin + [token_pinyin[0]],
-                        )
+                check_count,add_count=  match_pinyin(
+                    token,
+                    check_count,
+                    remaining_pinyin,
+                    add_count,
+                    next_beam,
+                    new_prob,
+                    new_context,
+                    new_token_tail,
+                    token_prob,
+                    matched_pinyin,
+                )
 
         # 按概率排序并截取 Beam Width 个最优结果
         next_beam.sort(key=lambda x: x[0], reverse=True)  # 按概率从高到低排序
