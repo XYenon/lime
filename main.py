@@ -34,7 +34,7 @@ class Candidate(TypedDict):
 
 # 使用 Beam Search 生成候选词，拼音拆分基于候选词
 def beam_search_generate(
-    pinyin_input: str, beam_width: int = 8, top_k: int = 10
+    pinyin_input: str, beam_width: int = 4, top_k: int = 10
 ) -> List[Candidate]:
     """
     使用 Beam Search 生成候选词，逐步匹配拼音。
@@ -52,11 +52,12 @@ def beam_search_generate(
         (1.0, "", pinyin_input, [], [])
     ]  # (prob, context, remaining_pinyin, token_tails, matched_pinyin)
 
-    final_candidates: List[
-        Tuple[float, str, List[str]]
-    ] = []
+    final_candidates: List[Tuple[float, str, List[str]]] = []
 
     run_count = 0
+    model_count = 0
+    check_count = 0
+    add_count = 0
 
     while beam:
         run_count += 1
@@ -79,9 +80,11 @@ def beam_search_generate(
 
                     # 检查拼音匹配
                     token_pinyin = lazy_pinyin(token)
+                    check_count += 1
                     if remaining_pinyin.startswith(token_pinyin[0]):
-                        print(context, token)
+                        print(context, token, token_tail_prob)
                         new_remaining_pinyin = remaining_pinyin[len(token_pinyin[0]) :]
+                        add_count += 1
                         add_to_beam(
                             next_beam,
                             new_prob,
@@ -91,19 +94,19 @@ def beam_search_generate(
                             token_tail_prob,
                             matched_pinyin + [token_pinyin[0]],
                         )
-                continue
 
+            model_count += 1
             inputs = tokenizer(prompt + context, return_tensors="pt")
             with torch.no_grad():
                 outputs = model(**inputs)
                 logits = outputs.logits[:, -1, :]
 
             probabilities = torch.softmax(logits, dim=-1)
-            tk = logits.size(-1)  # 设置为可能的上限
+            tk = min(10**5, logits.size(-1))
             top_probs, top_indices = torch.topk(probabilities, tk)
 
             for i in range(tk):
-                if len(next_beam) >= 10:  # 如果 next_beam 的容量达到 100，终止遍历
+                if len(next_beam) >= 7:
                     break
 
                 token_id = top_indices[0, i].item()
@@ -111,23 +114,28 @@ def beam_search_generate(
                 if len(token) < 1:
                     continue
                 token_prob = top_probs[0, i].item()
+                if token_prob < 10**-10:
+                    break
                 new_prob = prob * token_prob  # 累乘概率
                 new_context = context + token[0]
                 new_token_tail = token[1:]  # 提取 token 的剩余部分
 
                 # 检查拼音匹配
                 token_pinyin = lazy_pinyin(token)
+                check_count += 1
                 if remaining_pinyin.startswith(token_pinyin[0]):
-                    new_remaining_pinyin = remaining_pinyin[len(token_pinyin[0]) :]
-                    add_to_beam(
-                        next_beam,
-                        new_prob,
-                        new_context,
-                        new_remaining_pinyin,
-                        new_token_tail,
-                        token_prob,
-                        matched_pinyin + [token_pinyin[0]],
-                    )
+                    if token != token_pinyin[0]:
+                        new_remaining_pinyin = remaining_pinyin[len(token_pinyin[0]) :]
+                        add_count += 1
+                        add_to_beam(
+                            next_beam,
+                            new_prob,
+                            new_context,
+                            new_remaining_pinyin,
+                            new_token_tail,
+                            token_prob,
+                            matched_pinyin + [token_pinyin[0]],
+                        )
 
         # 按概率排序并截取 Beam Width 个最优结果
         next_beam.sort(key=lambda x: x[0], reverse=True)  # 按概率从高到低排序
@@ -137,6 +145,8 @@ def beam_search_generate(
     candidates: List[Candidate] = []
     for prob, tokens, matched_pinyin in final_candidates:
         candidates.append({"word": tokens, "score": prob, "pinyin": matched_pinyin})
+
+    print(run_count, model_count, check_count, add_count)
 
     # 按得分排序并返回 Top-K
     candidates.sort(key=lambda x: x["score"], reverse=True)
@@ -180,7 +190,8 @@ def add_to_beam(
             if new_token_tail:
                 # 合并 tail
                 if existing_token_tails:
-                    existing_token_tails.append((new_token_tail, token_prob))
+                    if len(existing_token_tails) <= 4:
+                        existing_token_tails.append((new_token_tail, token_prob))
                 else:
                     next_beam[i] = (
                         existing_prob,
