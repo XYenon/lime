@@ -23,6 +23,21 @@ model_name = "Qwen/Qwen3-0.6B"  # 或您使用的模型
 print("加载模型", model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
+print("加载完成")
+
+print("创建拼音索引")
+
+
+def generate_token_pinyin_map(tokenizer):
+    token_pinyin_map: Dict[int, List[str]] = {}
+    for token_id in range(tokenizer.vocab_size):
+        token = tokenizer.decode([token_id]).strip()
+        if token:
+            token_pinyin_map[token_id] = lazy_pinyin(token)
+    return token_pinyin_map
+
+
+token_pinyin_map = generate_token_pinyin_map(tokenizer)
 
 # 上下文存储
 pre_context = "下面的内容主题多样并且没有标点"
@@ -101,7 +116,9 @@ def beam_search_generate(
                     continue
                 new_context = context + token
 
-                token_pinyin = lazy_pinyin(token)
+                token_pinyin = token_pinyin_map.get(int(token_id))
+                if not (token_pinyin):
+                    continue
                 token_pinyin_str = "".join(token_pinyin)
                 check_count += 1
                 if remaining_pinyin.startswith(token_pinyin_str):
@@ -212,3 +229,5 @@ def commit_text() -> Dict[str, List[str]]:
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
+print("初始化完毕")
