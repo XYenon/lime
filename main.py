@@ -83,15 +83,22 @@ def beam_search_generate(
             tk = min(10**5, logits.size(-1))
             top_probs, top_indices = torch.topk(probabilities, tk)
 
+            bw = max_beam_w if run_count == 1 else min_beam_w
+
             for i in range(tk):
-                token_id = top_indices[0, i].item()
-                token = tokenizer.decode([token_id])
-                if len(token) < 1:
-                    continue
                 token_prob = top_probs[0, i].item()
                 if token_prob < 10**-10:
                     break
                 new_prob = prob * token_prob  # 累乘概率
+
+                if len(next_beam) == bw:
+                    if new_prob < next_beam[-1][0]:
+                        break
+
+                token_id = top_indices[0, i].item()
+                token = tokenizer.decode([token_id])
+                if len(token) < 1:
+                    continue
                 new_context = context + token
 
                 token_pinyin = lazy_pinyin(token)
@@ -110,7 +117,7 @@ def beam_search_generate(
                                 new_remaining_pinyin,
                                 ltk + [(token, token_prob)],
                                 matched_pinyin + token_pinyin,
-                                max_beam_w if run_count == 1 else min_beam_w,
+                                bw,
                             )
                             else 0
                         )
