@@ -1,8 +1,6 @@
 from main import keys_to_pinyin, beam_search_generate, commit, clear_commit
 from pypinyin import lazy_pinyin
 
-from typing import List
-
 
 def test_text_offset(test_text: str):
     """
