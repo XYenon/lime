@@ -46,6 +46,7 @@ print("创建拼音索引")
 
 token_pinyin_map: Dict[int, List[str]] = {}
 first_pinyin_token: Dict[str, Set[int]] = {}
+pinyin_k: Set[str] = set()
 
 for token_id in range(llm.n_vocab()):
     try:
@@ -61,6 +62,11 @@ for token_id in range(llm.n_vocab()):
         s.add(token_id)
         first_pinyin_token[fp] = s
 
+        py2 = lazy_pinyin(token, errors="ignore")
+        for i in py2:
+            pinyin_k.add(i)
+
+pinyin_k_l = sorted(list(pinyin_k), key=lambda x: len(x), reverse=True)
 
 # 上下文存储
 pre_context = "下面的内容主题多样并且没有标点"
@@ -71,9 +77,21 @@ user_context = []
 def keys_to_pinyin(keys: str) -> PinyinL:
     # 示例：将按键直接映射为拼音（实际可根据需求扩展）
     # 比如双拼、模糊
-    return list(
-        map(lambda x: PinyinAndKey(key=x, py=x), keys.split(" "))
-    )  # 这里用空格辅助，实际上应该自动拆分
+    l: List[PinyinAndKey] = []
+    k = keys
+    while len(k) > 0:
+        has = False
+        for i in pinyin_k_l:
+            if k.startswith(i):
+                has = True
+                l.append(PinyinAndKey(key=i, py=i))
+                k = k[len(i) :]
+                break
+        if not has:
+            # todo
+            k = k[1:]
+    print(l)
+    return l
 
 
 def softmax(x: np.ndarray) -> np.ndarray:

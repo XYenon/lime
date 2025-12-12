@@ -14,7 +14,7 @@ def test_text_offset(test_text: str):
     offset = 0
     src_t = test_text
     t = ""
-    py = " ".join(lazy_pinyin(src_t))
+    py = "".join(lazy_pinyin(src_t))
 
     start_time = time.time()
 
@@ -28,7 +28,7 @@ def test_text_offset(test_text: str):
                 has = True
                 src_t = src_t[len(candidate["word"]) :]
                 t = t + candidate["word"]
-                py = " ".join(candidate["remainkeys"])
+                py = "".join(candidate["remainkeys"])
                 print(idx, candidate["word"])
                 offset = offset + idx
                 break
