@@ -273,7 +273,7 @@ def single_ci(pinyin_input: PinyinL, pre_str="") -> List[Candidate]:
 
     top_probs, top_indices = get_top_k_logits_numpy(logits, tk)
 
-    firstPinyin = pinyin_input[0].get("py")
+    firstPinyin = pinyin_input[0].get("py") if pinyin_input else ""
     ftokenid = first_pinyin_token.get(firstPinyin)
     if ftokenid == None:
         ftokenid = set()
