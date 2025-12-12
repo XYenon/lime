@@ -22,12 +22,6 @@ uv sync
 git clone https://www.modelscope.cn/qwen/Qwen2-0.5B-Instruct-GGUF.git
 ```
 
-### 仅测试
-
-```shell
-uv run test_engine.py
-```
-
 ### 开启服务器
 
 ```shell
@@ -80,6 +74,29 @@ curl --request POST \
 }'
 ```
 
+## 作为输入法
+
+这里使用[rime](https://rime.im/)作为前端。
+
+复制项目 rime 文件夹里面的内容到你的 rime 输入法配置里面。
+
+安装 luasocket（见下面）。
+
+创建密钥`uv run key.py`，只需要创建一次，把输出的密钥改写在`llm_pinyin.lua`的`key`变量里面。
+
+开启服务器，切换到 llm 拼音输入法即可使用。
+
+注意，并不能与你其他的 rime 输入法结合，只能作为一个新的 rime 输入法。
+
+### 安装 luasocket
+
+对于 linux，使用`luarocks`安装：
+
+```
+sudo luarocks install luasocket \
+  LIBFLAG="-shared -llua"
+```
+
 ## 现状
 
 速度不可接受，组个短句需要数秒。
@@ -88,4 +105,12 @@ curl --request POST \
 
 还没有设计模糊音、双拼等。
 
-如何与真正的输入法结合起来？也许要用 rime 吧。
+现在使用 rime 可以一个词一个词输入，长句输入还不行。另外，输入太快会漏字母。
+
+## 开发
+
+### 仅测试
+
+```shell
+uv run test_engine.py
+```

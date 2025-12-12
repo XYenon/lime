@@ -3,9 +3,10 @@ local http = require("socket.http")
 local url = require("socket.url")
 local ltn12 = require("ltn12")
 
+local key = "你的密钥"
 
 local headers = {
-  Authorization = 'Bearer **'
+  Authorization = 'Bearer ' .. key
 }
 
 local base_url = "http://127.0.0.1:5000"
