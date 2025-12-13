@@ -543,6 +543,11 @@ def commit(text: str, update=False, new=True):
         return user_context
 
     user_context.append(new_text)
+
+    if llm.n_tokens >= max_count:
+        try_trim_context()
+        return user_context
+
     to_run = llm.tokenize(new_text.encode())
     llm.eval(to_run)
     global last_result
