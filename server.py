@@ -99,11 +99,13 @@ def get_sentence_get() -> Dict[str, List[Dict[str, float]]]:
 def commit_text_post() -> Dict[str, List[str]]:
     data = request.json
     text = data.get("text", "")  # type: ignore
+    new = data.get("new", True)  # type: ignore
+    update = data.get("update", False)  # type: ignore
 
     if not text:
         return jsonify({"error": "No text provided"}), 400  # type: ignore
 
-    user_context = commit(text)
+    user_context = commit(text, update=update, new=new)
     print("".join(user_context)[-20:])
 
     return jsonify(
@@ -120,11 +122,13 @@ def commit_text_get() -> Dict[str, List[str]]:
     # 从 URL 参数获取数据
     text: str = request.args.get("text", "")
     text = unquote(text)
+    new = True if (request.args.get("new", "true") == "true") else False
+    update = False if request.args.get("update", "false") == "false" else True
 
     if not text:
         return jsonify({"error": "No text provided"}), 400  # type: ignore
 
-    user_context = commit(text)
+    user_context = commit(text, update=update, new=new)
     print("".join(user_context)[-20:])
 
     return jsonify(

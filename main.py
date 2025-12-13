@@ -84,6 +84,7 @@ pinyin_k_l = sorted(
 # 上下文存储
 pre_context = "下面的内容主题多样"
 user_context = []
+last_context_data = {"context": ""}
 
 to_run: List[int] = []
 last_result: np.ndarray | None = None
@@ -473,10 +474,31 @@ def single_ci(pinyin_input: PinyinL, pre_str="") -> Result:
     return {"candidates": c}
 
 
-def commit(text: str):
-    user_context.append(text)
+def commit(text: str, update=False, new=True):
+    """
+    提交
+
+    :param text: 要提交的文本
+    :param update: 如果为真，尝试匹配找到追加的字符串
+    :param new: 不匹配，输入的就是新的文本
+    """
+    new_text = ""
+    if update:
+        if text.startswith(last_context_data["context"]):
+            new_text = text[len(last_context_data["context"]) :]
+            last_context_data["context"] = text
+        else:
+            new_text = text
+            new = True
+    if new:
+        last_context_data["context"] = ""
+
+    if not new_text:
+        return user_context
+
+    user_context.append(new_text)
     global to_run
-    to_run = llm.tokenize(text.encode())
+    to_run = llm.tokenize(new_text.encode())
     llm.eval(to_run)
     global last_result
     logits_array = llm._scores[-1]

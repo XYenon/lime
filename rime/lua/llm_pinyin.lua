@@ -44,7 +44,7 @@ function translator.init(env)
   env.notifier = env.engine.context.commit_notifier:connect(function(ctx)
     local commit = ctx.commit_history:back()
     if commit then
-      fetch_text(base_url .. "/commit?text=" .. url.escape(commit.text), {
+      fetch_text(base_url .. "/commit?update=true&new=true&text=" .. url.escape(commit.text), {
         headers = headers
       })
     end
@@ -62,6 +62,17 @@ end
 ---@param seg Segment
 ---@param env Env
 function translator.func(input, seg, env)
+  local ctx = env.engine.context
+  local preedit = ctx:get_preedit().text
+  if preedit ~= '' then
+    local had_select_text = string.sub(preedit, 0, string.len(preedit) - (seg._end - seg.start))
+    if had_select_text ~= '' then
+      fetch_text(base_url .. "/commit?update=true&new=false&text=" .. url.escape(had_select_text), {
+        headers = headers
+      })
+    end
+  end
+
   local qp = input
   local code, reply = fetch_text(base_url .. "/candidates?keys=" .. url.escape(qp), {
     headers = headers
@@ -70,7 +81,7 @@ function translator.func(input, seg, env)
   if code == 200 and _ then
     for i, v in ipairs(j.candidates) do
       local word = string.gsub(v['word'], "'", " ")
-      local c = Candidate("normal", seg.start, seg._end, word, "")
+      local c = Candidate("normal", seg.start, seg.start + v['consumedkeys'], word, "")
       c.quality = 2
       c.preedit = v["preedit"]
       yield(c)
