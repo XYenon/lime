@@ -1,6 +1,7 @@
 from functools import wraps
 from key import verify_key
-from main import keys_to_pinyin, beam_search_generate, commit, clear_commit, single_ci
+from main import beam_search_generate, commit, clear_commit, single_ci
+from utils.keys_to_pinyin import keys_to_pinyin
 
 from flask import Flask, request, jsonify, abort
 from typing import List, Dict

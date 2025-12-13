@@ -61,5 +61,7 @@ def generate_shuang_pinyin(pinyin_k_l: List[str]) -> Dict[str, str]:
         s, y = spilt_pinyin(i)
         ds = sm_map[s] if s in sm_map else s
         dy = ym_map[y] if y in ym_map else y
+        if len(ds + dy) != 2:
+            continue
         dbp2fullp[ds + dy] = i
     return dbp2fullp

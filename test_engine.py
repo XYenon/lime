@@ -1,8 +1,10 @@
 import time
 from typing import List
-from main import keys_to_pinyin, beam_search_generate, commit, clear_commit, single_ci
+from main import beam_search_generate, commit, clear_commit, single_ci
 from pypinyin import lazy_pinyin
 import jieba
+
+from utils.keys_to_pinyin import keys_to_pinyin
 
 
 def test_text_offset(test_text: List[str]):

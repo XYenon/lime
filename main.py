@@ -1,23 +1,14 @@
 import math
-from pypinyin import Style, lazy_pinyin, pinyin
+from pypinyin import Style, pinyin
 from llama_cpp import Llama
 import numpy as np
 import threading
 
 from typing import List, Dict, Set, Tuple, TypedDict
 
-from utils.shuangpin import generate_shuang_pinyin
-from utils.split_pinyin import spilt_pinyin
+from utils.keys_to_pinyin import PinyinL
 
 
-class PinyinAndKey(TypedDict):
-    py: str
-    key: str
-
-
-PinyinL = List[  # 拆分后的序列
-    List[PinyinAndKey]  # 多选，比如模糊音，半个拼音等
-]
 Pinyin = List[str]
 
 
@@ -75,7 +66,6 @@ print("创建拼音索引")
 
 token_pinyin_map: Dict[int, List[List[str]]] = {}
 first_pinyin_token: Dict[str, Set[int]] = {}
-pinyin_k: Set[str] = set()
 
 for token_id in range(llm.n_vocab()):
     try:
@@ -90,13 +80,6 @@ for token_id in range(llm.n_vocab()):
             s.add(token_id)
             first_pinyin_token[fp] = s
 
-        py2 = lazy_pinyin(token, errors="ignore")
-        for i in py2:
-            pinyin_k.add(i)
-
-pinyin_k_l = sorted(
-    list(filter(lambda x: len(x) > 1, pinyin_k)), key=lambda x: len(x), reverse=True
-) + ["a", "o", "e"]
 
 # 上下文存储
 pre_context = "下面的内容主题多样"
@@ -108,133 +91,6 @@ rm_count = min(max_count, 64, math.floor(max_count * 0.2))
 
 
 last_result: np.ndarray | None = None
-
-
-class FuzzyConfig:
-    def __init__(self):
-        # 声母模糊音
-        self.initial_fuzzy = {
-            "c": "ch",
-            "z": "zh",
-            "s": "sh",
-            # 'l': 'n',
-            # 'n': 'l',
-            # 'f': 'h',
-            # 'h': 'f',
-            # 'r': 'l',
-            # 'l': 'r',
-        }
-
-        # 韵母模糊音
-        self.final_fuzzy = {
-            "an": "ang",
-            "ang": "an",
-            "en": "eng",
-            "eng": "en",
-            "in": "ing",
-            "ing": "in",
-            "ian": "iang",
-            "iang": "ian",
-            "uan": "uang",
-            "uang": "uan",
-        }
-
-        # 是否启用模糊音
-        self.enabled = True
-
-
-# 创建全局模糊音配置实例
-fuzzy_config = FuzzyConfig()
-
-
-def generate_fuzzy_pinyin(pinyin: str) -> List[str]:
-    """生成模糊音变体"""
-    fuzzy_variants = set()
-
-    if not fuzzy_config.enabled:
-        return [pinyin]
-
-    initial, final = spilt_pinyin(pinyin)
-
-    for i in [initial] + (
-        [fuzzy_config.initial_fuzzy[initial]]
-        if initial in fuzzy_config.initial_fuzzy
-        else []
-    ):
-        for j in [final] + (
-            [fuzzy_config.final_fuzzy[final]]
-            if final in fuzzy_config.final_fuzzy
-            else []
-        ):
-            fuzzy_variants.add(i + j)
-
-    return list(fuzzy_variants)
-
-
-shuangpin_map = generate_shuang_pinyin(pinyin_k_l)
-
-
-# 按键转拼音
-def keys_to_pinyin(keys: str) -> PinyinL:
-    # 示例：将按键直接映射为拼音（实际可根据需求扩展）
-    # 比如双拼、模糊
-    l: PinyinL = []
-    k = keys
-
-    def try_match(k: str):
-        has = False
-
-        for i in shuangpin_map.keys():
-            if k.startswith(i):
-                has = True
-                pinyin = shuangpin_map[i]
-                pinyin_variants = generate_fuzzy_pinyin(pinyin)
-                py_list: List[PinyinAndKey] = []
-                for variant in pinyin_variants:
-                    py_list.append(PinyinAndKey(key=i, py=variant))
-                l.append(py_list)
-                k = k[len(i) :]
-                return k
-
-        for i in pinyin_k_l:
-            if k.startswith(i):
-                has = True
-                pinyin = i
-                pinyin_variants = generate_fuzzy_pinyin(pinyin)
-                py_list: List[PinyinAndKey] = []
-                for variant in pinyin_variants:
-                    py_list.append(PinyinAndKey(key=i, py=variant))
-                l.append(py_list)
-                k = k[len(i) :]
-                return k
-        if has == False:
-            return None
-
-    count = 0
-    while len(k) > 0:
-        count = count + 1
-        if count > len(keys) * 2:
-            break
-        nk = try_match(k)
-        if nk != None:
-            k = nk
-        else:
-            for plen in range(len(k)):
-                xk = k[0 : plen + 1]
-                ll: List[PinyinAndKey] = []
-                for i in shuangpin_map.keys():
-                    if i.startswith(xk):
-                        ll.append(PinyinAndKey(key=xk, py=shuangpin_map[i]))
-                for i in pinyin_k_l:
-                    if i.startswith(xk):
-                        ll.append(PinyinAndKey(key=xk, py=i))
-                if ll:
-                    l.append(ll)
-                k = k[len(xk) :]
-                if ll:
-                    break
-    print(l)
-    return l
 
 
 def softmax(x: np.ndarray) -> np.ndarray:
