@@ -502,7 +502,7 @@ def single_ci(pinyin_input: PinyinL) -> Result:
                         "score": float(token_prob),
                         "word": token,
                         "remainkeys": rmpy,
-                        "preedit": " ".join(token_pinyin) + " " if rmpy else "",
+                        "preedit": " ".join(token_pinyin) + (" " if rmpy else ""),
                         "consumedkeys": len("".join(matchpy)),
                     }
                 )
