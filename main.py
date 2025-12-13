@@ -25,6 +25,7 @@ class Candidate(TypedDict):
     pinyin: Pinyin
     remainkeys: List[str]
     preedit: str
+    consumedkeys: int
 
 
 class Result(TypedDict):
@@ -370,6 +371,16 @@ def beam_search_generate(
                 "pinyin": matched_pinyin,
                 "remainkeys": [],
                 "preedit": " ".join(matched_pinyin),
+                "consumedkeys": len(
+                    "".join(
+                        list(
+                            map(
+                                lambda x: x[0]["key"],
+                                pinyin_input[: len(matched_pinyin)],
+                            )
+                        )
+                    )
+                ),
             }
         )
 
@@ -437,6 +448,9 @@ def single_ci(pinyin_input: PinyinL, pre_str="") -> Result:
                 rmpy = list(
                     map(lambda x: x[0]["key"], pinyin_input[len(token_pinyin) :])
                 )
+                matchpy = list(
+                    map(lambda x: x[0]["key"], pinyin_input[: len(token_pinyin)])
+                )
                 c.append(
                     {
                         "pinyin": token_pinyin,
@@ -444,6 +458,7 @@ def single_ci(pinyin_input: PinyinL, pre_str="") -> Result:
                         "word": token,
                         "remainkeys": rmpy,
                         "preedit": pre_str + " ".join(token_pinyin + rmpy),
+                        "consumedkeys": len("".join(matchpy)),
                     }
                 )
     c.sort(key=lambda x: len(x["word"]), reverse=True)
