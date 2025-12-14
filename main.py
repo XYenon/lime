@@ -342,10 +342,10 @@ def single_ci(pinyin_input: PinyinL) -> Result:
                         if p == x["py"]:
                             find_zi_eq = True
                             token_pinyin.append(p)
-                            preedit_pinyin.append(
-                                x["py"] if x["isAllMatch"] else x["key"]
-                            )
+                            preedit_pinyin.append(x["preeditShow"])
                             break
+                    if find_zi_eq:
+                        break
                 if find_zi_eq == False:
                     pyeq = False
                     break
