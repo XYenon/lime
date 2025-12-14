@@ -7,6 +7,7 @@ from utils.shuangpin import generate_shuang_pinyin
 class PinyinAndKey(TypedDict):
     py: str
     key: str
+    isAllMatch: bool
 
 
 PinyinL = List[  # 拆分后的序列
@@ -40,7 +41,7 @@ def keys_to_pinyin(keys: str) -> PinyinL:
                 pinyin_variants = generate_fuzzy_pinyin(pinyin)
                 py_list: List[PinyinAndKey] = []
                 for variant in pinyin_variants:
-                    py_list.append(PinyinAndKey(key=i, py=variant))
+                    py_list.append(PinyinAndKey(key=i, py=variant, isAllMatch=True))
                 l.append(py_list)
                 k = k[len(i) :]
                 return k
@@ -52,7 +53,7 @@ def keys_to_pinyin(keys: str) -> PinyinL:
                 pinyin_variants = generate_fuzzy_pinyin(pinyin)
                 py_list: List[PinyinAndKey] = []
                 for variant in pinyin_variants:
-                    py_list.append(PinyinAndKey(key=i, py=variant))
+                    py_list.append(PinyinAndKey(key=i, py=variant, isAllMatch=True))
                 l.append(py_list)
                 k = k[len(i) :]
                 return k
@@ -73,10 +74,12 @@ def keys_to_pinyin(keys: str) -> PinyinL:
                 ll: List[PinyinAndKey] = []
                 for i in shuangpin_map.keys():
                     if i.startswith(xk):
-                        ll.append(PinyinAndKey(key=xk, py=shuangpin_map[i]))
+                        ll.append(
+                            PinyinAndKey(key=xk, py=shuangpin_map[i], isAllMatch=False)
+                        )
                 for i in pinyin_k_l:
                     if i.startswith(xk):
-                        ll.append(PinyinAndKey(key=xk, py=i))
+                        ll.append(PinyinAndKey(key=xk, py=i, isAllMatch=False))
                 if ll:
                     l.append(ll)
                 k = k[len(xk) :]

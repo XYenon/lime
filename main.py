@@ -330,17 +330,22 @@ def single_ci(pinyin_input: PinyinL) -> Result:
         if not (token_pinyin_dy):
             continue
         token_pinyin: List[str] = []
+        preedit_pinyin: List[str] = []
         pyeq = True
         if len(pinyin_input) >= len(token_pinyin_dy):
             for [i, ps] in enumerate(token_pinyin_dy):
-                input_posi = list(map(lambda x: x["py"], pinyin_input[i]))
+                input_posi = pinyin_input[i]
                 zi_posi = ps
                 find_zi_eq = False
                 for p in zi_posi:
-                    if p in input_posi:
-                        find_zi_eq = True
-                        token_pinyin.append(p)
-                        break
+                    for x in input_posi:
+                        if p == x["py"]:
+                            find_zi_eq = True
+                            token_pinyin.append(p)
+                            preedit_pinyin.append(
+                                x["py"] if x["isAllMatch"] else x["key"]
+                            )
+                            break
                 if find_zi_eq == False:
                     pyeq = False
                     break
@@ -361,7 +366,7 @@ def single_ci(pinyin_input: PinyinL) -> Result:
                         "score": float(token_prob),
                         "word": token,
                         "remainkeys": rmpy,
-                        "preedit": " ".join(token_pinyin) + (" " if rmpy else ""),
+                        "preedit": " ".join(preedit_pinyin) + (" " if rmpy else ""),
                         "consumedkeys": len("".join(matchpy)),
                     }
                 )
