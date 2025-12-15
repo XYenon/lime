@@ -441,7 +441,7 @@ def pinyin_in_pinyin(pinyin_input: PinyinL, token_pinyin_dy: List[List[str]]):
             find_zi_eq = False
             for p in zi_posi:
                 for x in input_posi:
-                    if p == x["py"]:
+                    if p == x["py"] or x["py"] == "*":
                         find_zi_eq = True
                         token_pinyin.append(x)
                         break

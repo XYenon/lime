@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import List, Tuple, TypedDict
 from utils.all_pinyin import generate_pinyin
 from utils.fuzzy_pinyin import generate_fuzzy_pinyin
 from utils.shuangpin import generate_shuang_pinyin
@@ -31,6 +31,9 @@ def keys_to_pinyin(keys: str, shuangpin=True) -> PinyinL:
     # 比如双拼、模糊
     l: PinyinL = []
     k = keys
+    split_key = "'"
+    if keys.startswith(split_key):
+        return []
     if shuangpin != True:
         shuangpin_map = {}
     else:
@@ -39,29 +42,28 @@ def keys_to_pinyin(keys: str, shuangpin=True) -> PinyinL:
     def try_match(k: str):
         has = False
 
-        for i in shuangpin_map.keys():
+        kl: List[Tuple[str, str]] = []
+        for i in shuangpin_map:
+            kl.append((i, shuangpin_map[i]))
+        for i in pinyin_k_l:
+            kl.append((i, i))
+
+        for [i, pinyin] in kl:
             if k.startswith(i):
                 has = True
-                pinyin = shuangpin_map[i]
                 pinyin_variants = generate_fuzzy_pinyin(pinyin)
                 py_list: List[PinyinAndKey] = []
+
+                next = k[len(i) : len(i) + 1]
+                if next == split_key:
+                    i = i + split_key
+
                 for variant in pinyin_variants:
                     py_list.append(PinyinAndKey(key=i, py=variant, preeditShow=variant))
                 l.append(py_list)
                 k = k[len(i) :]
                 return k
 
-        for i in pinyin_k_l:
-            if k.startswith(i):
-                has = True
-                pinyin = i
-                pinyin_variants = generate_fuzzy_pinyin(pinyin)
-                py_list: List[PinyinAndKey] = []
-                for variant in pinyin_variants:
-                    py_list.append(PinyinAndKey(key=i, py=variant, preeditShow=variant))
-                l.append(py_list)
-                k = k[len(i) :]
-                return k
         if has == False:
             return None
 
@@ -70,19 +72,30 @@ def keys_to_pinyin(keys: str, shuangpin=True) -> PinyinL:
         count = count + 1
         if count > len(keys) * 2:
             break
+
+        if k.startswith(split_key):
+            l.append([PinyinAndKey(py="*", key=split_key, preeditShow="*")])
+            k = k[1:]
+
         nk = try_match(k)
         if nk != None:
             k = nk
         else:
             for plen in range(len(k)):
                 xk = k[0 : plen + 1]
+                nxk = xk
                 ll: List[PinyinAndKey] = []
                 for i in shuangpin_map.keys():
                     if i.startswith(xk):
                         py = shuangpin_map[i]
+
+                        next = k[len(xk) : len(xk) + 1]
+                        if next == split_key:
+                            nxk = xk + split_key
+
                         ll.append(
                             PinyinAndKey(
-                                key=xk,
+                                key=nxk,
                                 py=py,
                                 preeditShow=(
                                     py[0:2] if py[0:2] in ["zh", "ch", "sh"] else py[0]
@@ -91,10 +104,13 @@ def keys_to_pinyin(keys: str, shuangpin=True) -> PinyinL:
                         )
                 for i in pinyin_k_l:
                     if i.startswith(xk):
-                        ll.append(PinyinAndKey(key=xk, py=i, preeditShow=xk))
+                        next = k[len(xk) : len(xk) + 1]
+                        if next == split_key:
+                            nxk = xk + split_key
+                        ll.append(PinyinAndKey(key=nxk, py=i, preeditShow=xk))
                 if ll:
                     l.append(ll)
-                k = k[len(xk) :]
+                k = k[len(nxk) :]
                 if ll:
                     break
     return l

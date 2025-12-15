@@ -59,6 +59,14 @@ sudo luarocks install luasocket \
   LIBFLAG="-shared -llua"
 ```
 
+## 特性
+
+除了 ai 优化，还有一些输入法特性：
+
+-   模糊音
+-   自然码双拼
+-   `'`号分割拼音
+
 ## 现状
 
 不支持长句输入，但输入一长串拼音后，可以中途选择来实现组句。
