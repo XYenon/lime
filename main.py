@@ -344,82 +344,80 @@ def single_ci(pinyin_input: PinyinL) -> Result:
             continue
         token_pinyin = pinyin_in_pinyin(pinyin_input, token_pinyin_dy)
 
-        if token_pinyin != False:
-            if token != token_pinyin[0]["py"]:
-                rmpy = list(
-                    map(lambda x: x[0]["key"], pinyin_input[len(token_pinyin) :])
+        if token_pinyin == False:
+            continue
+
+        if token == token_pinyin[0]["py"]:
+            continue
+
+        rmpy = list(map(lambda x: x[0]["key"], pinyin_input[len(token_pinyin) :]))
+
+        if rmpy and (token_id in y用户词):
+            # 尝试匹配用户词典
+            lis: List[li] = []
+            for n in y用户词.get(token_id, []):
+                lis.append(
+                    li(
+                        ppy=token_pinyin.copy(),
+                        tkids=[token_id],
+                        remainids=n[1:],
+                    )
                 )
+            final_lis: List[li] = []
+            for _i in range(4):
+                nl: List[li] = []
+                for item in lis:
+                    i = item["remainids"][0]
+                    r = pinyin_input[len(item["ppy"]) :]
+                    if len(r) == 0:
+                        break
+                    p = token_pinyin_map.get(i, [])
+                    m = pinyin_in_pinyin(r, p)
+                    if m:
+                        rids = item["remainids"][1:]
 
-                if rmpy and (token_id in y用户词):
-                    # 尝试匹配用户词典
-                    lis: List[li] = []
-                    for n in y用户词.get(token_id, []):
-                        lis.append(
-                            li(
-                                ppy=token_pinyin.copy(),
-                                tkids=[token_id],
-                                remainids=n[1:],
-                            )
+                        nitem = li(
+                            ppy=item["ppy"] + m,
+                            remainids=rids,
+                            tkids=item["tkids"] + [i],
                         )
-                    final_lis: List[li] = []
-                    for _i in range(4):
-                        nl: List[li] = []
-                        for item in lis:
-                            i = item["remainids"][0]
-                            r = pinyin_input[len(item["ppy"]) :]
-                            if len(r) == 0:
-                                break
-                            p = token_pinyin_map.get(i, [])
-                            m = pinyin_in_pinyin(r, p)
-                            if m:
-                                rids = item["remainids"][1:]
-
-                                nitem = li(
-                                    ppy=item["ppy"] + m,
-                                    remainids=rids,
-                                    tkids=item["tkids"] + [i],
-                                )
-                                if not rids:
-                                    final_lis.append(nitem)
-                                else:
-                                    nl.append(nitem)
-                        lis = nl
-                    print(final_lis)
-                    for i in final_lis:
-                        rmpy1 = list(
-                            map(lambda x: x[0]["key"], pinyin_input[len(i["ppy"]) :])
-                        )
-                        c.append(
-                            {
-                                "pinyin": list(map(lambda x: x["py"], i["ppy"])),
-                                "score": float(token_prob),
-                                "word": llm.detokenize(i["tkids"]).decode(),
-                                "preedit": " ".join(
-                                    list(map(lambda x: x["preeditShow"], i["ppy"]))
-                                )
-                                + (" " if rmpy1 else ""),
-                                "remainkeys": rmpy1,
-                                "consumedkeys": len(
-                                    "".join(list(map(lambda x: x["key"], i["ppy"])))
-                                ),
-                            }
-                        )
-
+                        if not rids:
+                            final_lis.append(nitem)
+                        else:
+                            nl.append(nitem)
+                lis = nl
+            print(final_lis)
+            for i in final_lis:
+                rmpy1 = list(map(lambda x: x[0]["key"], pinyin_input[len(i["ppy"]) :]))
                 c.append(
                     {
-                        "pinyin": list(map(lambda x: x["py"], token_pinyin)),
+                        "pinyin": list(map(lambda x: x["py"], i["ppy"])),
                         "score": float(token_prob),
-                        "word": token,
-                        "remainkeys": rmpy,
+                        "word": llm.detokenize(i["tkids"]).decode(),
                         "preedit": " ".join(
-                            map(lambda x: x["preeditShow"], token_pinyin)
+                            list(map(lambda x: x["preeditShow"], i["ppy"]))
                         )
-                        + (" " if rmpy else ""),
+                        + (" " if rmpy1 else ""),
+                        "remainkeys": rmpy1,
                         "consumedkeys": len(
-                            "".join(list(map(lambda x: x["key"], token_pinyin)))
+                            "".join(list(map(lambda x: x["key"], i["ppy"])))
                         ),
                     }
                 )
+
+        c.append(
+            {
+                "pinyin": list(map(lambda x: x["py"], token_pinyin)),
+                "score": float(token_prob),
+                "word": token,
+                "remainkeys": rmpy,
+                "preedit": " ".join(map(lambda x: x["preeditShow"], token_pinyin))
+                + (" " if rmpy else ""),
+                "consumedkeys": len(
+                    "".join(list(map(lambda x: x["key"], token_pinyin)))
+                ),
+            }
+        )
     c.sort(key=lambda x: len(x["word"]), reverse=True)
 
     print(
