@@ -12,7 +12,9 @@ export type PinyinL = Array<
 	Array<PinyinAndKey> // 多选，比如模糊音，半个拼音等
 >;
 
-const pinyin_k_l = generate_pinyin().toSorted((a, b) => b.length - a.length);
+const pinyin_k_l = generate_pinyin()
+	.toSorted((a, b) => b.length - a.length)
+	.filter((i) => i.length > 1); // todo 排除了aoe，后续应该移除
 
 const sp_map = generate_shuang_pinyin(pinyin_k_l);
 

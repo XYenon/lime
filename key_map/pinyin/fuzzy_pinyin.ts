@@ -37,6 +37,7 @@ const fuzzyPinyinConfig = {
 
 export function generate_fuzzy_pinyin(pinyin: string) {
 	const fuzzy_variants = new Set<string>();
+	fuzzy_variants.add(pinyin);
 	const [initial, final] = spilt_pinyin(pinyin);
 	for (const i of [
 		initial,
