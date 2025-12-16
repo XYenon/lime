@@ -33,7 +33,7 @@ const rm_count = Math.min(max_count, 64, Math.floor(max_count * 0.2));
 
 let last_result: Map<Token, number> | undefined;
 
-export async function commit(text: string, update = false, newT = true) {
+export function commit(text: string, update = false, newT = true) {
 	let new_text = "";
 	let nt = newT;
 
@@ -52,7 +52,7 @@ export async function commit(text: string, update = false, newT = true) {
 			new_text = text;
 		}
 	}
-	if (!new_text) return user_context;
+	if (!new_text) return;
 
 	if (newT) add_user_word(text);
 
@@ -61,26 +61,29 @@ export async function commit(text: string, update = false, newT = true) {
 	// todo shift context
 
 	const to_run = model.tokenizer(new_text);
-	if (to_run.length === 0) return user_context;
+	if (to_run.length === 0) return;
 
 	const pre = to_run.slice(0, -1);
 	const last = to_run[to_run.length - 1];
-	const res = await sequence.controlledEvaluate([
-		...pre,
-		[
-			last,
-			{
-				generateNext: {
-					probabilities: true,
+	const release = modelEvalLock.lock();
+	sequence
+		.controlledEvaluate([
+			...pre,
+			[
+				last,
+				{
+					generateNext: {
+						probabilities: true,
+					},
 				},
-			},
-		],
-	]);
-	last_result = res.at(-1)?.next.probabilities;
+			],
+		])
+		.then((res) => {
+			last_result = res.at(-1)?.next.probabilities;
+			release();
+		});
 
 	// todo trim context reset
-
-	return user_context;
 }
 
 function add_user_word(w: string) {
@@ -92,7 +95,9 @@ function add_user_word(w: string) {
 	return true;
 }
 
-export function single_ci(pinyin_input: PinyinL): { candidates: Candidate[] } {
+export async function single_ci(pinyin_input: PinyinL): Promise<{
+	candidates: Candidate[];
+}> {
 	if (pinyin_input.length === 0 || pinyin_input[0].length === 0) {
 		return { candidates: [] };
 	}
@@ -108,6 +113,8 @@ export function single_ci(pinyin_input: PinyinL): { candidates: Candidate[] } {
 	}
 
 	const c: Candidate[] = [];
+
+	await modelEvalLock.acquire();
 
 	for (const [token_id, token_prob] of last_result) {
 		if (!ftokenid.has(token_id)) continue;
@@ -176,6 +183,22 @@ async function init_ctx() {
 	]);
 	last_result = x.at(-1)?.next.probabilities;
 }
+
+class Lock {
+	pm: Promise<void> | null = null;
+
+	async acquire() {
+		if (this.pm) await this.pm;
+	}
+
+	lock() {
+		const p = Promise.withResolvers<void>();
+		this.pm = p.promise;
+		return p.resolve;
+	}
+}
+
+const modelEvalLock = new Lock();
 
 const llama = await getLlama({
 	gpu: false,

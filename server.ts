@@ -81,19 +81,19 @@ app.post("/candidates", async (c) => {
 	console.log(keys);
 
 	const pinyinInput = keys_to_pinyin(keys, pinyinConfig);
-	const result = single_ci(pinyinInput);
+	const result = await single_ci(pinyinInput);
 
 	return c.json(result);
 });
 
 // API: 获取候选词 - GET 方法
-app.get("/candidates", (c) => {
+app.get("/candidates", async (c) => {
 	const keys = getParam(c, "keys");
 
 	console.log(keys);
 
 	const pinyinInput = keys_to_pinyin(keys, pinyinConfig);
-	const result = single_ci(pinyinInput);
+	const result = await single_ci(pinyinInput);
 
 	return c.json(result);
 });
@@ -110,8 +110,7 @@ app.post("/commit", async (c) => {
 			throw new HTTPException(400, { message: "未提供文本内容" });
 		}
 
-		const userContext = await commit(text, shouldUpdate, isNew);
-		console.log(userContext.join("").slice(-20));
+		commit(text, shouldUpdate, isNew);
 
 		return c.json({
 			message: "文本提交成功",
@@ -124,7 +123,7 @@ app.post("/commit", async (c) => {
 });
 
 // API: 提交文字 - GET 方法
-app.get("/commit", async (c) => {
+app.get("/commit", (c) => {
 	try {
 		const text = getParam(c, "text");
 		const isNew = getBoolParam(c, "new", true);
@@ -134,8 +133,7 @@ app.get("/commit", async (c) => {
 			throw new HTTPException(400, { message: "未提供文本内容" });
 		}
 
-		const userContext = await commit(text, shouldUpdate, isNew);
-		console.log(userContext.join("").slice(-20));
+		commit(text, shouldUpdate, isNew);
 
 		return c.json({
 			message: "文本提交成功",
