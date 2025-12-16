@@ -19,7 +19,7 @@ Deno.test("fuzzy pinyin", () => {
 });
 
 Deno.test("拼音 常规", () => {
-	const x = keys_to_pinyin("nihao", false);
+	const x = keys_to_pinyin("nihao");
 	assertEquals(x, [
 		[{ py: "ni", key: "ni", preeditShow: "ni" }],
 		[{ py: "hao", key: "hao", preeditShow: "hao" }],
@@ -27,23 +27,23 @@ Deno.test("拼音 常规", () => {
 });
 
 Deno.test("拼音 部分", () => {
-	const x = keys_to_pinyin("nihaow", false).at(-1);
+	const x = keys_to_pinyin("nihaow").at(-1);
 	assert((x?.length ?? 0) > 0);
 	const x1 = x?.find((v) => v.py === "wo");
 	assertEquals(x1, { key: "w", py: "wo", preeditShow: "w" });
 });
 
 Deno.test("拼音 部分2", () => {
-	const x = keys_to_pinyin("nihao").at(-1);
+	const x = keys_to_pinyin("nihao", { shuangpin: true }).at(-1);
 	assert((x?.length ?? 0) > 0);
 	const x1 = x?.find((v) => v.py === "ou");
 	assertEquals(x1, { key: "o", py: "ou", preeditShow: "o" });
 });
 
 Deno.test("拼音 分隔符", () => {
-	const x = keys_to_pinyin("ni'", false);
+	const x = keys_to_pinyin("ni'");
 	assertEquals(x, [[{ key: "ni'", py: "ni", preeditShow: "ni" }]]);
-	const x1 = keys_to_pinyin("ni'hao'wo", false);
+	const x1 = keys_to_pinyin("ni'hao'wo");
 	assertEquals(x1, [
 		[{ key: "ni'", py: "ni", preeditShow: "ni" }],
 		[{ key: "hao'", py: "hao", preeditShow: "hao" }],
@@ -52,7 +52,7 @@ Deno.test("拼音 分隔符", () => {
 });
 
 Deno.test("双拼", () => {
-	const x = keys_to_pinyin("xxxx", true);
+	const x = keys_to_pinyin("xxxx", { shuangpin: true });
 	assertEquals(x, [
 		[{ key: "xx", py: "xie", preeditShow: "xie" }],
 		[{ key: "xx", py: "xie", preeditShow: "xie" }],

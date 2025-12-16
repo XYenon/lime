@@ -3,8 +3,43 @@ import { bearerAuth } from "hono/bearer-auth";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { verifyKey } from "./key.ts";
-import { keys_to_pinyin } from "./key_map/pinyin/keys_to_pinyin.ts";
+import {
+	keys_to_pinyin,
+	type PinyinToKeyOptions,
+} from "./key_map/pinyin/keys_to_pinyin.ts";
 import { commit, single_ci } from "./main.ts";
+
+const pinyinConfig: PinyinToKeyOptions = {
+	shuangpin: true,
+	fuzzy: {
+		initial: {
+			c: "ch",
+			z: "zh",
+			s: "sh",
+			ch: "c",
+			zh: "z",
+			sh: "s",
+			// 'l': 'n',
+			// 'n': 'l',
+			// 'f': 'h',
+			// 'h': 'f',
+			// 'r': 'l',
+			// 'l': 'r',
+		},
+		final: {
+			an: "ang",
+			ang: "an",
+			en: "eng",
+			eng: "en",
+			in: "ing",
+			ing: "in",
+			// "ian": "iang",
+			// "iang": "ian",
+			uan: "uang",
+			uang: "uan",
+		},
+	},
+};
 
 const app = new Hono();
 
@@ -45,7 +80,7 @@ app.post("/candidates", async (c) => {
 
 	console.log(keys);
 
-	const pinyinInput = keys_to_pinyin(keys);
+	const pinyinInput = keys_to_pinyin(keys, pinyinConfig);
 	const result = single_ci(pinyinInput);
 
 	return c.json(result);
@@ -57,7 +92,7 @@ app.get("/candidates", (c) => {
 
 	console.log(keys);
 
-	const pinyinInput = keys_to_pinyin(keys);
+	const pinyinInput = keys_to_pinyin(keys, pinyinConfig);
 	const result = single_ci(pinyinInput);
 
 	return c.json(result);

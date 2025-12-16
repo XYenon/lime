@@ -1,5 +1,8 @@
 import { generate_pinyin } from "./all_pinyin.ts";
-import { generate_fuzzy_pinyin } from "./fuzzy_pinyin.ts";
+import {
+	type FuzzyPinyinConfig,
+	generate_fuzzy_pinyin,
+} from "./fuzzy_pinyin.ts";
 import { generate_shuang_pinyin } from "./shuangpin.ts";
 
 export type PinyinAndKey = {
@@ -11,6 +14,10 @@ export type PinyinL = Array<
 	// 拆分后的序列
 	Array<PinyinAndKey> // 多选，比如模糊音，半个拼音等
 >;
+export type PinyinToKeyOptions = {
+	shuangpin?: boolean;
+	fuzzy?: FuzzyPinyinConfig;
+};
 
 const pinyin_k_l = generate_pinyin()
 	.toSorted((a, b) => b.length - a.length)
@@ -18,12 +25,12 @@ const pinyin_k_l = generate_pinyin()
 
 const sp_map = generate_shuang_pinyin(pinyin_k_l);
 
-export function keys_to_pinyin(keys: string, shuangpin = true): PinyinL {
+export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): PinyinL {
 	const l: PinyinL = [];
 	let k = keys;
 	const split_key = "'";
 	if (keys.startsWith(split_key)) return [];
-	const shuangpinMap = shuangpin ? sp_map : {};
+	const shuangpinMap = op?.shuangpin ? sp_map : {};
 
 	function tryMatch(k: string) {
 		let has = false;
@@ -37,7 +44,7 @@ export function keys_to_pinyin(keys: string, shuangpin = true): PinyinL {
 		for (const { i, pinyin } of kl) {
 			if (k.startsWith(i)) {
 				has = true;
-				const pinyin_variants = generate_fuzzy_pinyin(pinyin);
+				const pinyin_variants = generate_fuzzy_pinyin(pinyin, op?.fuzzy);
 
 				let ni = i;
 				const next = k.at(i.length);
@@ -67,7 +74,7 @@ export function keys_to_pinyin(keys: string, shuangpin = true): PinyinL {
 		if (_count > keys.length * 2) {
 			console.error("keys_to_pinyin possible infinite loop:", {
 				keys,
-				shuangpin,
+				op,
 				l,
 				k,
 			});

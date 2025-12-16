@@ -1,8 +1,13 @@
 import { getValue } from "../../utils/obj.ts";
 import { spilt_pinyin } from "./split_pinyin.ts";
 
-const fuzzyPinyinConfig = {
-	initial_fuzzy: {
+export type FuzzyPinyinConfig = {
+	initial: Record<string, string>;
+	final: Record<string, string>;
+};
+
+const fuzzyPinyinConfig: FuzzyPinyinConfig = {
+	initial: {
 		c: "ch",
 		z: "zh",
 		s: "sh",
@@ -16,7 +21,7 @@ const fuzzyPinyinConfig = {
 		// 'r': 'l',
 		// 'l': 'r',
 	},
-	final_fuzzy: {
+	final: {
 		an: "ang",
 		ang: "an",
 		en: "eng",
@@ -35,15 +40,15 @@ const fuzzyPinyinConfig = {
 	// },
 };
 
-export function generate_fuzzy_pinyin(pinyin: string) {
+export function generate_fuzzy_pinyin(
+	pinyin: string,
+	config: FuzzyPinyinConfig = fuzzyPinyinConfig,
+) {
 	const fuzzy_variants = new Set<string>();
 	fuzzy_variants.add(pinyin);
 	const [initial, final] = spilt_pinyin(pinyin);
-	for (const i of [
-		initial,
-		getValue(fuzzyPinyinConfig.initial_fuzzy, initial),
-	].concat()) {
-		for (const j of [final, getValue(fuzzyPinyinConfig.final_fuzzy, final)]) {
+	for (const i of [initial, getValue(config.initial, initial)].concat()) {
+		for (const j of [final, getValue(config.final, final)]) {
 			if (i && j) fuzzy_variants.add(i + j);
 		}
 	}

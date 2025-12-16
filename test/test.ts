@@ -11,7 +11,7 @@ async function test_text_offset(test_text: string[]) {
 
 		let src_t = _src_t;
 		while (py.length > 0) {
-			const pinyin_input = keys_to_pinyin(py, false);
+			const pinyin_input = keys_to_pinyin(py);
 			const candidates = single_ci(pinyin_input);
 			let has = false;
 
@@ -21,7 +21,7 @@ async function test_text_offset(test_text: string[]) {
 					has = true;
 					src_t = src_t.slice(text.length);
 					t = t + text;
-					py = candidate.remainkes.join("");
+					py = candidate.remainkeys.join("");
 					console.log(idx, text);
 					offset = offset + idx;
 					await commit(text);
