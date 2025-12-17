@@ -1,6 +1,3 @@
-# Rime schema configuration for MSPY (Double Pinyin) with cloud candidates
-# 微软双拼方案 + 云输入
-
 schema:
     schema_id: llm
     name: "大模型拼音"
@@ -37,7 +34,7 @@ engine:
         - punct_segmentor
         - fallback_segmentor
     translators:
-        - lua_translator@*cloud_pinyin_mspy*translator
+        - lua_translator@*llm_pinyin*translator
         - punct_translator
 
 translator:
