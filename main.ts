@@ -95,6 +95,11 @@ function add_user_word(w: string) {
 	const ts = model.tokenizer(w);
 	if (ts.length === 0) return false;
 	const l = y用户词.get(ts[0]) ?? [];
+	for (const exist of l) {
+		if (exist.length !== ts.length) continue;
+		const same = exist.every((v, i) => v === ts[i]);
+		if (same) return false;
+	}
 	l.push(ts);
 	y用户词.set(ts[0], l);
 	return true;

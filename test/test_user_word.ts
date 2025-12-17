@@ -6,6 +6,7 @@ Deno.test("组词", async () => {
 	commit("冰灯");
 	commit("灯盏");
 	commit("悠然自得");
+	commit("冰灯");
 	const r = await single_ci(keys_to_pinyin("bingdeng"));
 	console.log(r.candidates.slice(0, 5));
 	assertEquals(r.candidates[0].word, "冰灯");
