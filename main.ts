@@ -91,6 +91,24 @@ export function commit(text: string, update = false, newT = true) {
 	// todo trim context reset
 }
 
+export async function reset_context() {
+	await modelEvalLock.acquire();
+	user_context.length = 0;
+	last_context_data.context = "";
+	y用户词.clear();
+	await sequence.clearHistory();
+	await init_ctx();
+}
+
+export async function getEvalResult() {
+	await modelEvalLock.acquire();
+	return last_result;
+}
+
+export function detoken(token: Token) {
+	return model.detokenize([token]);
+}
+
 function add_user_word(w: string) {
 	const ts = model.tokenizer(w);
 	if (ts.length === 0) return false;
