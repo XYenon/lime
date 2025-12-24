@@ -1,3 +1,4 @@
+import type { ZiIndAndKey, ZiIndL } from "../zi_ind.ts";
 import { generate_pinyin } from "./all_pinyin.ts";
 import {
 	type FuzzyPinyinConfig,
@@ -5,15 +6,6 @@ import {
 } from "./fuzzy_pinyin.ts";
 import { generate_shuang_pinyin } from "./shuangpin.ts";
 
-export type PinyinAndKey = {
-	py: string;
-	key: string;
-	preeditShow: string;
-};
-export type PinyinL = Array<
-	// 拆分后的序列
-	Array<PinyinAndKey> // 多选，比如模糊音，半个拼音等
->;
 export type PinyinToKeyOptions = {
 	shuangpin?: boolean;
 	fuzzy?: FuzzyPinyinConfig;
@@ -23,8 +15,8 @@ const pinyin_k_l = generate_pinyin().toSorted((a, b) => b.length - a.length);
 
 const sp_map = generate_shuang_pinyin(pinyin_k_l);
 
-export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): PinyinL {
-	const l: PinyinL = [];
+export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): ZiIndL {
+	const l: ZiIndL = [];
 	let k = keys;
 	const split_key = "'";
 	if (keys.startsWith(split_key)) return [];
@@ -50,7 +42,7 @@ export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): PinyinL {
 
 				l.push(
 					pinyin_variants.map((py) => ({
-						py,
+						ind: py,
 						key: ni,
 						preeditShow: py,
 					})),
@@ -79,7 +71,7 @@ export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): PinyinL {
 		}
 
 		if (k.startsWith(split_key)) {
-			l.push([{ py: "*", key: split_key, preeditShow: "*" }]);
+			l.push([{ ind: "*", key: split_key, preeditShow: "*" }]);
 			k = k.slice(1);
 		}
 
@@ -90,7 +82,7 @@ export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): PinyinL {
 			for (let plen = 0; plen < k.length; plen++) {
 				const xk = k.slice(0, plen + 1);
 				let nxk = xk;
-				const ll: PinyinAndKey[] = [];
+				const ll: ZiIndAndKey[] = [];
 				for (const [i, py] of Object.entries(shuangpinMap)) {
 					if (i.startsWith(xk)) {
 						const next = k.at(xk.length);
@@ -98,7 +90,7 @@ export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): PinyinL {
 							nxk = xk + split_key;
 						}
 						ll.push({
-							py,
+							ind: py,
 							key: nxk,
 							preeditShow: ["zh", "ch", "sh"].includes(py.slice(0, 2))
 								? py.slice(0, 2)
@@ -113,7 +105,7 @@ export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): PinyinL {
 							nxk = xk + split_key;
 						}
 						ll.push({
-							py: i,
+							ind: i,
 							key: nxk,
 							preeditShow: xk,
 						});

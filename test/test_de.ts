@@ -3,8 +3,9 @@ import path from "node:path";
 import { pinyin } from "pinyin-pro";
 import { keys_to_pinyin } from "../key_map/pinyin/keys_to_pinyin.ts";
 import { initLIME } from "../main.ts";
+import { load_pinyin } from "../key_map/pinyin/gen_zi_pinyin.ts";
 
-const { commit, single_ci } = await initLIME();
+const { commit, single_ci } = await initLIME({ ziInd: load_pinyin() });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

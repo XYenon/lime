@@ -32,7 +32,7 @@ export function load_pinyin() {
 	}
 
 	return {
-		pinyin: (ci: string) => {
+		trans: (ci: string) => {
 			const l: string[][] = [];
 			for (const i of ci) {
 				if (i in d) {
@@ -43,9 +43,6 @@ export function load_pinyin() {
 			}
 			return l;
 		},
-		allZi: {
-			normal: new Set(Object.keys(a)),
-			big: new Set(Object.keys(b)),
-		},
+		allSymbol: new Set(Object.keys(a)).union(new Set(Object.keys(b))),
 	};
 }
