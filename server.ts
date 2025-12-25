@@ -3,46 +3,19 @@ import { bearerAuth } from "hono/bearer-auth";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { verifyKey } from "./key.ts";
-import { load_pinyin } from "./key_map/pinyin/gen_zi_pinyin.ts";
-import {
-	keys_to_pinyin,
-	type PinyinToKeyOptions,
-} from "./key_map/pinyin/keys_to_pinyin.ts";
-import { getUserData, initLIME } from "./main.ts";
+import type { Config } from "./utils/config.d.ts";
 
-const { single_ci, commit } = await initLIME({ ziInd: load_pinyin() });
+let userConfig: Config | undefined;
 
-const pinyinConfig: PinyinToKeyOptions = {
-	shuangpin: "自然码",
-	fuzzy: {
-		initial: {
-			c: "ch",
-			z: "zh",
-			s: "sh",
-			ch: "c",
-			zh: "z",
-			sh: "s",
-			// 'l': 'n',
-			// 'n': 'l',
-			// 'f': 'h',
-			// 'h': 'f',
-			// 'r': 'l',
-			// 'l': 'r',
-		},
-		final: {
-			an: "ang",
-			ang: "an",
-			en: "eng",
-			eng: "en",
-			in: "ing",
-			ing: "in",
-			// "ian": "iang",
-			// "iang": "ian",
-			uan: "uang",
-			uang: "uan",
-		},
-	},
-};
+try {
+	userConfig = (await import("./user_config.ts")).default;
+} catch {
+	console.log("使用默认配置");
+}
+
+const config = userConfig || (await import("./config.ts")).default;
+
+const { single_ci, commit, getUserData } = config.runner;
 
 const app = new Hono();
 
@@ -83,7 +56,7 @@ app.post("/candidates", async (c) => {
 
 	console.log(keys);
 
-	const pinyinInput = keys_to_pinyin(keys, pinyinConfig);
+	const pinyinInput = config.key2ZiInd(keys);
 	const result = await single_ci(pinyinInput);
 
 	return c.json(result);
@@ -95,7 +68,7 @@ app.get("/candidates", async (c) => {
 
 	console.log(keys);
 
-	const pinyinInput = keys_to_pinyin(keys, pinyinConfig);
+	const pinyinInput = config.key2ZiInd(keys);
 	const result = await single_ci(pinyinInput);
 
 	return c.json(result);

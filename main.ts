@@ -51,24 +51,6 @@ function get_context() {
 	return pre_context + user_context.join("");
 }
 
-export function getUserData(): UserData {
-	return {
-		words: Object.fromEntries(y用户词),
-		context: user_context,
-	};
-}
-
-export function loadUserData(data: UserData) {
-	if (y用户词.size > 0 || user_context.length) {
-		console.log("已存在用户数据");
-		return;
-	}
-	user_context.length = 0;
-	for (const i of data.context) user_context.push(i);
-	y用户词.clear();
-	for (const [k, v] of Object.entries(data.words)) y用户词.set(Number(k), v);
-}
-
 class Lock {
 	pm: Promise<void> | null = null;
 
@@ -115,7 +97,7 @@ export async function initLIME(op: {
 	return lime;
 }
 
-class LIME {
+export class LIME {
 	model: LlamaModel;
 	context: LlamaContext;
 	sequence: LlamaContextSequence;
@@ -519,4 +501,21 @@ class LIME {
 		]);
 		last_result = x.at(-1)?.next.probabilities;
 	};
+
+	getUserData(): UserData {
+		return {
+			words: Object.fromEntries(y用户词),
+			context: user_context,
+		};
+	}
+	loadUserData(data: UserData) {
+		if (y用户词.size > 0 || user_context.length) {
+			console.log("已存在用户数据");
+			return;
+		}
+		user_context.length = 0;
+		for (const i of data.context) user_context.push(i);
+		y用户词.clear();
+		for (const [k, v] of Object.entries(data.words)) y用户词.set(Number(k), v);
+	}
 }
