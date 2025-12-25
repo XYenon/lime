@@ -34,7 +34,7 @@ Deno.test("拼音 部分", () => {
 });
 
 Deno.test("拼音 部分2", () => {
-	const x = keys_to_pinyin("nihao", { shuangpin: true }).at(-1);
+	const x = keys_to_pinyin("nihao", { shuangpin: "自然码" }).at(-1);
 	assert((x?.length ?? 0) > 0);
 	const x1 = x?.find((v) => v.ind === "ou");
 	assertEquals(x1, { key: "o", ind: "ou", preeditShow: "o" });
@@ -51,7 +51,7 @@ Deno.test("拼音 部分3", () => {
 		x?.find((v) => v.ind === "ai"),
 		{ key: "a", ind: "ai", preeditShow: "a" },
 	);
-	const x1 = keys_to_pinyin("tma", { shuangpin: true }).at(-1);
+	const x1 = keys_to_pinyin("tma", { shuangpin: "自然码" }).at(-1);
 	assert((x1?.length ?? 0) > 0);
 	assertEquals(
 		x1?.find((v) => v.ind === "a"),
@@ -61,7 +61,7 @@ Deno.test("拼音 部分3", () => {
 		x1?.find((v) => v.ind === "ai"),
 		{ key: "a", ind: "ai", preeditShow: "a" },
 	);
-	const x2 = keys_to_pinyin("tmaa", { shuangpin: true }).at(-1);
+	const x2 = keys_to_pinyin("tmaa", { shuangpin: "自然码" }).at(-1);
 	assert((x2?.length ?? 0) > 0);
 	console.log(x2);
 
@@ -80,7 +80,7 @@ Deno.test("拼音 分隔符", () => {
 });
 
 Deno.test("双拼", () => {
-	const x = keys_to_pinyin("xxxx", { shuangpin: true });
+	const x = keys_to_pinyin("xxxx", { shuangpin: "自然码" });
 	assertEquals(x, [
 		[{ key: "xx", ind: "xie", preeditShow: "xie" }],
 		[{ key: "xx", ind: "xie", preeditShow: "xie" }],

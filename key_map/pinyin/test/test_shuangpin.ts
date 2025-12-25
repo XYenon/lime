@@ -1,10 +1,10 @@
 import { assertEquals } from "@std/assert";
 import { generate_pinyin } from "../all_pinyin.ts";
-import { generate_shuang_pinyin } from "../shuangpin.ts";
+import { generate_shuang_pinyin, shuangpinMaps } from "../shuangpin.ts";
 
 Deno.test("generate shuangpin", () => {
 	const all = generate_pinyin();
-	const shuangpin = generate_shuang_pinyin(all);
+	const shuangpin = generate_shuang_pinyin(all, shuangpinMaps.自然码);
 	console.log(all);
 	console.log(shuangpin);
 	const as = new Set(all);

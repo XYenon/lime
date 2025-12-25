@@ -19,6 +19,6 @@ Deno.test("智能组词", async () => {
 	commit("冰灯");
 	commit("是");
 	commit("流行于");
-	const nr = await single_ci(keys_to_pinyin("vsgobz", { shuangpin: true }));
+	const nr = await single_ci(keys_to_pinyin("vsgobz", { shuangpin: "自然码" }));
 	console.log(nr.candidates.slice(0, 5));
 });

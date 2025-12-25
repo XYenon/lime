@@ -4,23 +4,32 @@ import {
 	type FuzzyPinyinConfig,
 	generate_fuzzy_pinyin,
 } from "./fuzzy_pinyin.ts";
-import { generate_shuang_pinyin } from "./shuangpin.ts";
+import {
+	generate_shuang_pinyin,
+	type ShuangpinMap,
+	shuangpinMaps,
+} from "./shuangpin.ts";
 
 export type PinyinToKeyOptions = {
-	shuangpin?: boolean;
+	shuangpin?: keyof typeof shuangpinMaps | false | ShuangpinMap;
 	fuzzy?: FuzzyPinyinConfig;
 };
 
 const pinyin_k_l = generate_pinyin().toSorted((a, b) => b.length - a.length);
-
-const sp_map = generate_shuang_pinyin(pinyin_k_l);
 
 export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): ZiIndL {
 	const l: ZiIndL = [];
 	let k = keys;
 	const split_key = "'";
 	if (keys.startsWith(split_key)) return [];
-	const shuangpinMap = op?.shuangpin ? sp_map : {};
+	const shuangpinMap = op?.shuangpin
+		? generate_shuang_pinyin(
+				pinyin_k_l,
+				typeof op.shuangpin === "string"
+					? shuangpinMaps[op.shuangpin]
+					: op.shuangpin,
+			)
+		: {};
 
 	function tryMatch(k: string) {
 		const kl: { i: string; pinyin: string }[] = [];

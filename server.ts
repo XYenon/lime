@@ -13,7 +13,7 @@ import { getUserData, initLIME } from "./main.ts";
 const { single_ci, commit } = await initLIME({ ziInd: load_pinyin() });
 
 const pinyinConfig: PinyinToKeyOptions = {
-	shuangpin: true,
+	shuangpin: "自然码",
 	fuzzy: {
 		initial: {
 			c: "ch",
