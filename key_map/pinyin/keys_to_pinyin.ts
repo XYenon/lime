@@ -34,7 +34,7 @@ export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): ZiIndL {
 	function tryMatch(k: string) {
 		const kl: { i: string; pinyin: string }[] = [];
 		for (const i in shuangpinMap) {
-			kl.push({ i, pinyin: shuangpinMap[i] });
+			for (const x of shuangpinMap[i]) kl.push({ i, pinyin: x });
 		}
 		for (const i of pinyin_k_l) {
 			kl.push({ i, pinyin: i });
@@ -92,20 +92,21 @@ export function keys_to_pinyin(keys: string, op?: PinyinToKeyOptions): ZiIndL {
 				const xk = k.slice(0, plen + 1);
 				let nxk = xk;
 				const ll: ZiIndAndKey[] = [];
-				for (const [i, py] of Object.entries(shuangpinMap)) {
-					if (i.startsWith(xk)) {
-						const next = k.at(xk.length);
-						if (next === split_key) {
-							nxk = xk + split_key;
+				for (const [i, pys] of Object.entries(shuangpinMap)) {
+					for (const py of pys)
+						if (i.startsWith(xk)) {
+							const next = k.at(xk.length);
+							if (next === split_key) {
+								nxk = xk + split_key;
+							}
+							ll.push({
+								ind: py,
+								key: nxk,
+								preeditShow: ["zh", "ch", "sh"].includes(py.slice(0, 2))
+									? py.slice(0, 2)
+									: py[0],
+							});
 						}
-						ll.push({
-							ind: py,
-							key: nxk,
-							preeditShow: ["zh", "ch", "sh"].includes(py.slice(0, 2))
-								? py.slice(0, 2)
-								: py[0],
-						});
-					}
 				}
 				for (const i of pinyin_k_l) {
 					if (i.startsWith(xk)) {

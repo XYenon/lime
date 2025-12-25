@@ -1,16 +1,25 @@
 import { assertEquals } from "@std/assert";
 import { generate_pinyin } from "../all_pinyin.ts";
-import { generate_shuang_pinyin, shuangpinMaps } from "../shuangpin.ts";
+import {
+	generate_shuang_pinyin,
+	type ShuangpinMap,
+	shuangpinMaps,
+} from "../shuangpin.ts";
 
-Deno.test("generate shuangpin", () => {
-	const all = generate_pinyin();
-	const shuangpin = generate_shuang_pinyin(all, shuangpinMaps.自然码);
-	console.log(all);
-	console.log(shuangpin);
+const all = generate_pinyin();
+
+function check(shuangpinM: ShuangpinMap) {
+	const shuangpin = generate_shuang_pinyin(all, shuangpinM);
 	const as = new Set(all);
 	for (const i of Object.values(shuangpin)) {
-		as.delete(i);
+		for (const p of i) as.delete(p);
 	}
-	console.log(as);
-	assertEquals(as.size, 0);
+	assertEquals(as, new Set());
+}
+
+Deno.test("generate shuangpin", () => {
+	for (const [name, map] of Object.entries(shuangpinMaps)) {
+		console.log("测试双拼方案", name);
+		check(map);
+	}
 });
