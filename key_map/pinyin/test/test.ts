@@ -16,6 +16,10 @@ Deno.test("fuzzy pinyin", () => {
 		new Set(generate_fuzzy_pinyin("shang")),
 		new Set(["shang", "shan", "san", "sang"]),
 	);
+	assertEquals(
+		new Set(generate_fuzzy_pinyin("er", { all: { er: "e", e: "er" } })),
+		new Set(["er", "e"]),
+	);
 });
 
 Deno.test("拼音 常规", () => {

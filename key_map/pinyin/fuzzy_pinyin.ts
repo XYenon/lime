@@ -2,8 +2,9 @@ import { getValue } from "../../utils/obj.ts";
 import { spilt_pinyin } from "./split_pinyin.ts";
 
 export type FuzzyPinyinConfig = {
-	initial: Record<string, string>;
-	final: Record<string, string>;
+	initial?: Record<string, string>;
+	final?: Record<string, string>;
+	all?: Record<string, string>;
 };
 
 const fuzzyPinyinConfig: FuzzyPinyinConfig = {
@@ -33,11 +34,6 @@ const fuzzyPinyinConfig: FuzzyPinyinConfig = {
 		uan: "uang",
 		uang: "uan",
 	},
-	// todo
-	// all: {
-	// 	er: "e",
-	// 	e: "er",
-	// },
 };
 
 export function generate_fuzzy_pinyin(
@@ -52,5 +48,7 @@ export function generate_fuzzy_pinyin(
 			if (i && j) fuzzy_variants.add(i + j);
 		}
 	}
+	const all = getValue(config.all, pinyin);
+	if (all) fuzzy_variants.add(all);
 	return Array.from(fuzzy_variants);
 }
