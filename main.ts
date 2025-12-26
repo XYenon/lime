@@ -159,6 +159,74 @@ export class LIME {
 		}
 	}
 
+	/**
+	 * 拼音约束采样 - 等价于 Structured Output 的 logit mask + 归一化
+	 *
+	 * 该方法对模型输出的概率分布应用拼音约束，其效果等价于在 logits 层面
+	 * 对不匹配拼音的 token 设置 -∞ 后再 softmax：
+	 *
+	 * 数学原理：
+	 * - 已有 softmax 后的概率 p_i
+	 * - 对允许集合 A 中的 token: p'_i = p_i / Σ_{j∈A} p_j
+	 * - 对不在 A 中的 token: p'_i = 0
+	 *
+	 * 这与在 logits 上对非 A 的 token 设为 -∞ 再 softmax 是数学等价的。
+	 * 因此无需在 controlledEvaluate 时传入 tokenBias，可以复用同一次
+	 * 前向计算的结果，对不同拼音输入应用不同约束。
+	 *
+	 * @param pinyin_input 输入的拼音序列
+	 * @param probs 模型输出的完整概率分布
+	 * @returns 经过拼音约束后的 token 及其归一化概率
+	 */
+	constrainByPinyin(
+		pinyin_input: ZiIndL,
+		probs: Map<Token, number>,
+	): Map<Token, { py: ZiIndAndKey[]; prob: number; token: string }> {
+		const result = new Map<
+			Token,
+			{ py: ZiIndAndKey[]; prob: number; token: string }
+		>();
+		let scoreSum = 0;
+
+		// 第一步：用首拼音快速缩小候选范围（粗筛）
+		const allowedByFirstPinyin = new Set<number>();
+		for (const firstPinyin of pinyin_input[0]) {
+			const s = this.first_pinyin_token.get(firstPinyin.ind) ?? new Set();
+			for (const tokenid of s) allowedByFirstPinyin.add(tokenid);
+		}
+
+		// 第二步：精确匹配拼音序列，收集通过的 token
+		for (const [token_id, token_prob] of probs) {
+			if (!allowedByFirstPinyin.has(token_id)) continue;
+			const token = this.model.detokenize([token_id]);
+			if (!token) continue;
+			if (["\t", "\n", " "].includes(token[0])) continue;
+
+			const token_pinyin_dy = this.token_pinyin_map.get(token_id);
+			if (!token_pinyin_dy) continue;
+
+			const token_pinyin = ziid_in_ziid(pinyin_input, token_pinyin_dy);
+			if (!token_pinyin) continue;
+			if (token === token_pinyin[0].ind) continue; // 排除部分英文
+
+			result.set(token_id, {
+				py: token_pinyin,
+				prob: token_prob,
+				token: this.model.detokenize([token_id]),
+			});
+			scoreSum += token_prob;
+		}
+
+		// 第三步：归一化 - 确保约束后的概率之和为 1
+		if (scoreSum > 0) {
+			for (const v of result.values()) {
+				v.prob /= scoreSum;
+			}
+		}
+
+		return result;
+	}
+
 	commit = (text: string, update = false, newT = true) => {
 		let new_text = "";
 		let nt = newT;
@@ -260,52 +328,13 @@ export class LIME {
 
 		await this.modelEvalLock.acquire();
 
-		const filterByPinyin = (
-			pinyin_input: ZiIndL,
-			last_result: Map<Token, number>,
-		) => {
-			const new_last_result = new Map<
-				Token,
-				{ py: ZiIndAndKey[]; prob: number; token: string }
-			>();
-			let scoreSum = 0;
-			const ftokenid = new Set<number>();
-			for (const firstPinyin of pinyin_input[0]) {
-				const s = this.first_pinyin_token.get(firstPinyin.ind) ?? new Set();
-				for (const tokenid of s) ftokenid.add(tokenid);
-			}
-
-			for (const [token_id, token_prob] of last_result) {
-				if (!ftokenid.has(token_id)) continue;
-				const token = this.model.detokenize([token_id]);
-				if (!token) continue;
-				if (["\t", "\n", " "].includes(token[0])) continue;
-
-				const token_pinyin_dy = this.token_pinyin_map.get(token_id);
-
-				if (!token_pinyin_dy) continue;
-
-				const token_pinyin = ziid_in_ziid(pinyin_input, token_pinyin_dy);
-				if (!token_pinyin) continue;
-				if (token === token_pinyin[0].ind) continue; // 排除部分英文
-				new_last_result.set(token_id, {
-					py: token_pinyin,
-					prob: token_prob,
-					token: this.model.detokenize([token_id]),
-				});
-				scoreSum += token_prob;
-			}
-			for (const v of new_last_result.values()) {
-				v.prob /= scoreSum;
-			}
-			return new_last_result;
-		};
-		const new_last_result = filterByPinyin(pinyin_input, last_result);
+		// 应用拼音约束 - 等价于 structured output 的 token 约束
+		const constrainedResult = this.constrainByPinyin(pinyin_input, last_result);
 
 		for (const [
 			token_id,
 			{ py: token_pinyin, prob: token_prob },
-		] of new_last_result) {
+		] of constrainedResult) {
 			const rmpy = pinyin_input.slice(token_pinyin.length).map((v) => v[0].ind);
 
 			if (op?.userWord && rmpy.length > 0 && y用户词.has(token_id)) {
@@ -366,7 +395,7 @@ export class LIME {
 		for (const [
 			token_id,
 			{ py: token_pinyin, prob: token_prob, token },
-		] of new_last_result) {
+		] of constrainedResult) {
 			const rmpy = pinyin_input.slice(token_pinyin.length).map((v) => v[0].ind);
 			const _lastTokenId = this.sequence.contextTokens.at(-1);
 			if (rmpy.length > 0) {
@@ -392,7 +421,8 @@ export class LIME {
 							],
 						]);
 						evalCount++;
-						const f = filterByPinyin(
+						// 对后续 token 同样应用拼音约束
+						const f = this.constrainByPinyin(
 							rmpyx,
 							next.at(-1)?.next.probabilities || new Map(),
 						);
